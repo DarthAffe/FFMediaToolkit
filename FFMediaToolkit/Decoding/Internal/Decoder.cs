@@ -104,11 +104,8 @@ internal unsafe class Decoder : Wrapper<AVCodecContext>
     /// <param name="targetTs">The target time stamp.</param>
     public void SkipFrames(long targetTs)
     {
-        do
-        {
+        while (RecentlyDecodedFrame.PresentationTimestamp < targetTs)
             ReadNextFrame();
-        }
-        while (RecentlyDecodedFrame.PresentationTimestamp < targetTs);
     }
 
     /// <summary>

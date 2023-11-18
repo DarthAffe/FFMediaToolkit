@@ -1,9 +1,9 @@
-﻿namespace FFMediaToolkit.Decoding;
-
-using System;
+﻿using System;
 using FFMediaToolkit.Common.Internal;
-using Internal;
-using Helpers;
+using FFMediaToolkit.Decoding.Internal;
+using FFMediaToolkit.Helpers;
+
+namespace FFMediaToolkit.Decoding;
 
 /// <summary>
 /// A base for streams of any kind of media.
@@ -19,49 +19,45 @@ public class MediaStream : IDisposable
     /// <param name="options">Extra options.</param>
     internal MediaStream(Decoder stream, MediaOptions options)
     {
-        Stream = stream;
+        _stream = stream;
         Options = options;
 
-        Threshold = TimeSpan.FromSeconds(0.5).ToTimestamp(Info.TimeBase);
+        _seekThreshold = TimeSpan.FromSeconds(0.5).ToTimestamp(Info.TimeBase);
     }
 
     /// <summary>
     /// Gets informations about this stream.
     /// </summary>
-    public StreamInfo Info => Stream.Info;
+    public StreamInfo Info => _stream.Info;
 
     /// <summary>
     /// Gets the timestamp of the recently decoded frame in the media stream.
     /// </summary>
-    public TimeSpan Position => Math.Max(Stream.RecentlyDecodedFrame.PresentationTimestamp, 0).ToTimeSpan(Info.TimeBase);
+    public TimeSpan Position => Math.Max(_stream.RecentlyDecodedFrame.PresentationTimestamp, 0).ToTimeSpan(Info.TimeBase);
 
     /// <summary>
     /// Indicates whether the stream has buffered frame data.
     /// </summary>
-    public bool IsBufferEmpty => Stream.IsBufferEmpty;
+    public bool IsBufferEmpty => _stream.IsBufferEmpty;
 
     /// <summary>
     /// Gets the options configured for this <see cref="MediaStream"/>.
     /// </summary>
     protected MediaOptions Options { get; }
 
-    private Decoder Stream { get; }
+    private Decoder _stream;
 
-    private long Threshold { get; }
+    private long _seekThreshold;
 
-    /// <summary>
-    /// Discards all buffered frame data associated with this stream.
-    /// </summary>
-    [Obsolete("Do not call this method. Buffered data is automatically discarded when required")]
-    public void DiscardBufferedData() => Stream.DiscardBufferedData();
+    private long _lastRequestedFrameTimestamp;
 
     /// <inheritdoc/>
     public virtual void Dispose()
     {
         if (!isDisposed)
         {
-            Stream.DiscardBufferedData();
-            Stream.Dispose();
+            _stream.DiscardBufferedData();
+            _stream.Dispose();
             isDisposed = true;
         }
     }
@@ -70,7 +66,12 @@ public class MediaStream : IDisposable
     /// Gets the data belonging to the next frame in the stream.
     /// </summary>
     /// <returns>The next frame's data.</returns>
-    internal MediaFrame GetNextFrame() => Stream.GetNextFrame();
+    internal MediaFrame GetNextFrame()
+    {
+        MediaFrame frame = _stream.GetNextFrame();
+        _lastRequestedFrameTimestamp = frame.PresentationTimestamp;
+        return frame;
+    }
 
     /// <summary>
     /// Seeks the stream to the specified time and returns the nearest frame's data.
@@ -86,23 +87,16 @@ public class MediaStream : IDisposable
 
     private MediaFrame GetFrameByTimestamp(long ts)
     {
-        MediaFrame frame = Stream.RecentlyDecodedFrame;
-        ts = Math.Max(0, Math.Min(ts, Info.DurationRaw));
+        MediaFrame frame = _stream.RecentlyDecodedFrame;
+        ts = Math.Clamp(ts, 0, Info.DurationRaw);
 
-        if ((ts > frame.PresentationTimestamp) && (ts < (frame.PresentationTimestamp + Threshold)))
-        {
-            return Stream.GetNextFrame();
-        }
-        else if (ts != frame.PresentationTimestamp)
-        {
-            if ((ts < frame.PresentationTimestamp) || (ts >= (frame.PresentationTimestamp + Threshold)))
-            {
-                Stream.OwnerFile.SeekFile(ts, Info.Index);
-            }
+        if ((ts > (frame.PresentationTimestamp + _seekThreshold)) || (ts < _lastRequestedFrameTimestamp))
+            _stream.OwnerFile.SeekFile(ts, Info.Index);
 
-            Stream.SkipFrames(ts);
-        }
+        _stream.SkipFrames(ts);
 
-        return Stream.RecentlyDecodedFrame;
+        _lastRequestedFrameTimestamp = ts;
+
+        return _stream.RecentlyDecodedFrame;
     }
 }
