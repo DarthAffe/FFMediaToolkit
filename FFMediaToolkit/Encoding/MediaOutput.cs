@@ -1,68 +1,67 @@
-﻿namespace FFMediaToolkit.Encoding
+﻿namespace FFMediaToolkit.Encoding;
+
+using System;
+using System.Linq;
+using Internal;
+
+/// <summary>
+/// Represents a multimedia output file.
+/// </summary>
+public class MediaOutput : IDisposable
 {
-    using System;
-    using System.Linq;
-    using FFMediaToolkit.Encoding.Internal;
+    private readonly OutputContainer container;
+    private bool isDisposed;
 
     /// <summary>
-    /// Represents a multimedia output file.
+    /// Initializes a new instance of the <see cref="MediaOutput"/> class.
     /// </summary>
-    public class MediaOutput : IDisposable
+    /// <param name="mediaContainer">The <see cref="OutputContainer"/> object.</param>
+    internal MediaOutput(OutputContainer mediaContainer)
     {
-        private readonly OutputContainer container;
-        private bool isDisposed;
+        container = mediaContainer;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="MediaOutput"/> class.
-        /// </summary>
-        /// <param name="mediaContainer">The <see cref="OutputContainer"/> object.</param>
-        internal MediaOutput(OutputContainer mediaContainer)
-        {
-            container = mediaContainer;
+        VideoStreams = container.Video
+                                .Select(o => new VideoOutputStream(o.stream, o.config))
+                                .ToArray();
 
-            VideoStreams = container.Video
-                .Select(o => new VideoOutputStream(o.stream, o.config))
-                .ToArray();
+        AudioStreams = container.Audio
+                                .Select(o => new AudioOutputStream(o.stream, o.config))
+                                .ToArray();
+    }
 
-            AudioStreams = container.Audio
-                .Select(o => new AudioOutputStream(o.stream, o.config))
-                .ToArray();
-        }
+    /// <summary>
+    /// Finalizes an instance of the <see cref="MediaOutput"/> class.
+    /// </summary>
+    ~MediaOutput() => Dispose();
 
-        /// <summary>
-        /// Finalizes an instance of the <see cref="MediaOutput"/> class.
-        /// </summary>
-        ~MediaOutput() => Dispose();
+    /// <summary>
+    /// Gets the video streams in the media file.
+    /// </summary>
+    public VideoOutputStream[] VideoStreams { get; }
 
-        /// <summary>
-        /// Gets the video streams in the media file.
-        /// </summary>
-        public VideoOutputStream[] VideoStreams { get; }
+    /// <summary>
+    /// Gets the audio streams in the media file.
+    /// </summary>
+    public AudioOutputStream[] AudioStreams { get; }
 
-        /// <summary>
-        /// Gets the audio streams in the media file.
-        /// </summary>
-        public AudioOutputStream[] AudioStreams { get; }
+    /// <summary>
+    /// Gets the first video stream in the media file.
+    /// </summary>
+    public VideoOutputStream Video => VideoStreams.FirstOrDefault();
 
-        /// <summary>
-        /// Gets the first video stream in the media file.
-        /// </summary>
-        public VideoOutputStream Video => VideoStreams.FirstOrDefault();
+    /// <summary>
+    /// Gets the first audio stream in the media file.
+    /// </summary>
+    public AudioOutputStream Audio => AudioStreams.FirstOrDefault();
 
-        /// <summary>
-        /// Gets the first audio stream in the media file.
-        /// </summary>
-        public AudioOutputStream Audio => AudioStreams.FirstOrDefault();
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        if (isDisposed)
+            return;
 
-        /// <inheritdoc/>
-        public void Dispose()
-        {
-            if (isDisposed)
-                return;
+        container.Dispose();
 
-            container.Dispose();
-
-            isDisposed = true;
-        }
+        isDisposed = true;
     }
 }

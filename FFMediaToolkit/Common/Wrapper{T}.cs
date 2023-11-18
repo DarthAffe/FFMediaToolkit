@@ -1,58 +1,57 @@
-﻿namespace FFMediaToolkit.Common
+﻿namespace FFMediaToolkit.Common;
+
+using System;
+
+/// <summary>
+/// A base class for wrappers of unmanaged objects with <see cref="IDisposable"/> implementation.
+/// </summary>
+/// <typeparam name="T">The type of the unmanaged object.</typeparam>
+internal abstract unsafe class Wrapper<T> : IDisposable
+    where T : unmanaged
 {
-    using System;
+    private nint pointer;
+    private bool isDisposed;
 
     /// <summary>
-    /// A base class for wrappers of unmanaged objects with <see cref="IDisposable"/> implementation.
+    /// Initializes a new instance of the <see cref="Wrapper{T}"/> class.
     /// </summary>
-    /// <typeparam name="T">The type of the unmanaged object.</typeparam>
-    internal abstract unsafe class Wrapper<T> : IDisposable
-        where T : unmanaged
+    /// <param name="pointer">A pointer to a unmanaged object.</param>
+    protected Wrapper(T* pointer) => this.pointer = new nint(pointer);
+
+    /// <summary>
+    /// Finalizes an instance of the <see cref="Wrapper{T}"/> class.
+    /// </summary>
+    ~Wrapper() => Disposing(false);
+
+    /// <summary>
+    /// Gets a pointer to the underlying object.
+    /// </summary>
+    public T* Pointer => isDisposed ? null : (T*)pointer;
+
+    /// <inheritdoc/>
+    public void Dispose() => Disposing(true);
+
+    /// <summary>
+    /// Updates the pointer to the object.
+    /// </summary>
+    /// <param name="newPointer">The new pointer.</param>
+    protected void UpdatePointer(T* newPointer) => pointer = new nint(newPointer);
+
+    /// <summary>
+    /// Free the unmanaged resources.
+    /// </summary>
+    protected abstract void OnDisposing();
+
+    private void Disposing(bool dispose)
     {
-        private IntPtr pointer;
-        private bool isDisposed;
+        if (isDisposed)
+            return;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Wrapper{T}"/> class.
-        /// </summary>
-        /// <param name="pointer">A pointer to a unmanaged object.</param>
-        protected Wrapper(T* pointer) => this.pointer = new IntPtr(pointer);
+        OnDisposing();
 
-        /// <summary>
-        /// Finalizes an instance of the <see cref="Wrapper{T}"/> class.
-        /// </summary>
-        ~Wrapper() => Disposing(false);
+        isDisposed = true;
 
-        /// <summary>
-        /// Gets a pointer to the underlying object.
-        /// </summary>
-        public T* Pointer => isDisposed ? null : (T*)pointer;
-
-        /// <inheritdoc/>
-        public void Dispose() => Disposing(true);
-
-        /// <summary>
-        /// Updates the pointer to the object.
-        /// </summary>
-        /// <param name="newPointer">The new pointer.</param>
-        protected void UpdatePointer(T* newPointer) => pointer = new IntPtr(newPointer);
-
-        /// <summary>
-        /// Free the unmanaged resources.
-        /// </summary>
-        protected abstract void OnDisposing();
-
-        private void Disposing(bool dispose)
-        {
-            if (isDisposed)
-                return;
-
-            OnDisposing();
-
-            isDisposed = true;
-
-            if (dispose)
-                GC.SuppressFinalize(this);
-        }
+        if (dispose)
+            GC.SuppressFinalize(this);
     }
 }

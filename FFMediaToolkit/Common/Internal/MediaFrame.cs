@@ -1,50 +1,49 @@
-﻿namespace FFMediaToolkit.Common.Internal
+﻿namespace FFMediaToolkit.Common.Internal;
+
+using FFmpeg.AutoGen;
+
+/// <summary>
+/// Represents a base class of audio and video frames.
+/// </summary>
+internal abstract unsafe class MediaFrame : Wrapper<AVFrame>
 {
-    using FFmpeg.AutoGen;
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MediaFrame"/> class.
+    /// </summary>
+    /// <param name="frame">The <see cref="AVFrame"/> object.</param>
+    public MediaFrame(AVFrame* frame)
+        : base(frame)
+    {
+    }
 
     /// <summary>
-    /// Represents a base class of audio and video frames.
+    /// Gets or sets the frame PTS value in the stream time base units.
     /// </summary>
-    internal abstract unsafe class MediaFrame : Wrapper<AVFrame>
+    public long PresentationTimestamp
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="MediaFrame"/> class.
-        /// </summary>
-        /// <param name="frame">The <see cref="AVFrame"/> object.</param>
-        public MediaFrame(AVFrame* frame)
-            : base(frame)
-        {
-        }
+        get => Pointer->pts;
+        set => Pointer->pts = value;
+    }
 
-        /// <summary>
-        /// Gets or sets the frame PTS value in the stream time base units.
-        /// </summary>
-        public long PresentationTimestamp
-        {
-            get => Pointer->pts;
-            set => Pointer->pts = value;
-        }
+    /// <summary>
+    /// Gets or sets the frame PTS value in the stream time base units.
+    /// </summary>
+    public long DecodingTimestamp
+    {
+        get => Pointer->pkt_dts;
+        set => Pointer->pkt_dts = value;
+    }
 
-        /// <summary>
-        /// Gets or sets the frame PTS value in the stream time base units.
-        /// </summary>
-        public long DecodingTimestamp
-        {
-            get => Pointer->pkt_dts;
-            set => Pointer->pkt_dts = value;
-        }
+    /// <summary>
+    /// Changes the pointer to the media frame.
+    /// </summary>
+    /// <param name="newFrame">The new pointer to a <see cref="AVFrame"/> object.</param>
+    internal virtual void Update(AVFrame* newFrame) => UpdatePointer(newFrame);
 
-        /// <summary>
-        /// Changes the pointer to the media frame.
-        /// </summary>
-        /// <param name="newFrame">The new pointer to a <see cref="AVFrame"/> object.</param>
-        internal virtual void Update(AVFrame* newFrame) => UpdatePointer(newFrame);
-
-        /// <inheritdoc/>
-        protected override void OnDisposing()
-        {
-            var ptr = Pointer;
-            ffmpeg.av_frame_free(&ptr);
-        }
+    /// <inheritdoc/>
+    protected override void OnDisposing()
+    {
+        AVFrame* ptr = Pointer;
+        ffmpeg.av_frame_free(&ptr);
     }
 }

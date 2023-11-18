@@ -1,23 +1,22 @@
-﻿namespace FFMediaToolkit.Common
+﻿namespace FFMediaToolkit.Common;
+
+/// <summary>
+/// Represents the multimedia stream types.
+/// </summary>
+public enum MediaType
 {
     /// <summary>
-    /// Represents the multimedia stream types.
+    /// Other media type not supported by the FFMediaToolkit.
     /// </summary>
-    public enum MediaType
-    {
-        /// <summary>
-        /// Other media type not supported by the FFMediaToolkit.
-        /// </summary>
-        None,
+    None,
 
-        /// <summary>
-        /// Video.
-        /// </summary>
-        Video,
+    /// <summary>
+    /// Video.
+    /// </summary>
+    Video,
 
-        /// <summary>
-        /// Audio.
-        /// </summary>
-        Audio,
-    }
+    /// <summary>
+    /// Audio.
+    /// </summary>
+    Audio,
 }
