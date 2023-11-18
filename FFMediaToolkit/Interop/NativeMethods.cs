@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 /// </summary>
 internal static class NativeMethods
 {
-    private static string MacOSDefautDirectory => "/opt/local/lib/";
+    private static string MacOSDefaultDirectory => "/opt/local/lib/";
 
     private static string LinuxDefaultDirectory => $"/usr/lib/{(Environment.Is64BitOperatingSystem ? "x86_64" : "x86")}-linux-gnu";
 
@@ -30,7 +30,7 @@ internal static class NativeMethods
         }
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
-            return MacOSDefautDirectory;
+            return MacOSDefaultDirectory;
         }
         else
         {
